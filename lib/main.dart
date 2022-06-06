@@ -1,15 +1,20 @@
 import 'dart:async';
 import 'dart:io' show Platform;
+import 'package:flutter/services.dart';
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:text_to_speech/text_to_speech.dart';
 import 'package:wakelock/wakelock.dart';
 import 'package:flutter_background/flutter_background.dart';
+import 'package:numberpicker/numberpicker.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   Wakelock.enable();
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setPreferredOrientations(
+      [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   runApp(const MyApp());
 }
 
@@ -22,6 +27,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'RunZone',
       theme: ThemeData(
           primarySwatch: Colors.blue, scaffoldBackgroundColor: Colors.grey),
@@ -50,7 +56,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   TextToSpeech tts = TextToSpeech();
-  int speakCounter = 10;
+  int speakCounter = 60;
   double stateMinPerKm = 0.0;
   String stateSpeakMinPerKm = 'Geen beweging gevonden';
   int stateTimesGetGeo = 0;
@@ -78,7 +84,8 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     _toggleServiceStatusStream();
-    tts.speak('De startknop staat rechts onderaan');
+    tts.speak(
+        'De startknop staat rechts onderaan. Midden bovenaan onder de status balk staan onder elkaar verschillende informatie die uitgesproken wordt als je er op tabt.');
   }
 
   PopupMenuButton _createSettingsPopupActions() {
@@ -109,6 +116,7 @@ class _MyHomePageState extends State<MyHomePage> {
           case 5:
             _activeOnBackground();
             break;
+
           default:
             break;
         }
@@ -153,6 +161,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.black,
         title: const Text('Runzone'),
         actions: [_createSettingsPopupActions()],
       ),
@@ -165,8 +174,9 @@ class _MyHomePageState extends State<MyHomePage> {
               minimumSize: const Size.fromHeight(50), // NEW
             ),
             onPressed: () {
-              tts.speak(
-                  stateTimesGetGeo.toString() + ' maal locatie data opgehaald');
+              tts.speak('Momenteel is ' +
+                  stateTimesGetGeo.toString() +
+                  ' maal de locatie data opgehaald');
             },
             child: Text(
               stateTimesGetGeo.toString(),
@@ -206,6 +216,63 @@ class _MyHomePageState extends State<MyHomePage> {
               style: const TextStyle(fontSize: 20),
             ),
           ),
+          sizedBox,
+          sizedBox,
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              primary: Colors.black,
+              minimumSize: const Size.fromHeight(50), // NEW
+            ),
+            onPressed: () {
+              tts.speak(
+                'Om de $speakCounter locatie ophalingen\n wordt je snelheid uitgesproken./n   Hieronder kun je dit instellen door de schuiven naar links of naar rechts',
+              );
+            },
+            child: Text(
+              '   Om de $speakCounter locatie ophalingen\n wordt je snelheid uitgesproken.',
+              style: const TextStyle(fontSize: 20),
+            ),
+          ),
+          sizedBox,
+          sizedBox,
+          NumberPicker(
+            value: speakCounter,
+            minValue: 10,
+            maxValue: 600,
+            step: 10,
+            itemHeight: 100,
+            axis: Axis.horizontal,
+            onChanged: (value) {
+              setState(() => speakCounter = value);
+              value > 30
+                  ? tts.speak('   Je snelheid hoor je om de ongeveer ' +
+                      ((value * 2) / 60).toStringAsFixed(2) +
+                      ' minuten.')
+                  : tts.speak('   Je snelheid hoor je om de ongeveer ' +
+                      (value * 2).toString() +
+                      ' seconden.');
+            },
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white),
+            ),
+          ),
+          sizedBox,
+          sizedBox,
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              primary: Colors.black,
+              minimumSize: const Size.fromHeight(50), // NEW
+            ),
+            onPressed: () {
+              tts.speak(
+                  'Meer informatie heb ik momenteel nog niet. Om je training te starten klik je op de startknop rechts onderaan.');
+            },
+            child: const Text(
+              '',
+              style: TextStyle(fontSize: 20),
+            ),
+          ),
         ],
       ),
       floatingActionButton: Column(
@@ -228,25 +295,34 @@ class _MyHomePageState extends State<MyHomePage> {
           //   onPressed: _getLastKnownPosition,
           // ),
           // sizedBox,
-          FloatingActionButton(
-            child: (_positionStreamSubscription == null ||
-                    _positionStreamSubscription!.isPaused)
-                ? const Icon(Icons.play_arrow)
-                : const Icon(Icons.pause),
-            onPressed: () {
-              positionStreamStarted = !positionStreamStarted;
-              positionStreamStarted
-                  ? tts.speak('Snelheidsmeting is gestart')
-                  : tts.speak('Snelheidsmeting is gestopt');
-              _toggleListening();
-            },
-            tooltip: (_positionStreamSubscription == null)
-                ? 'Start position updates'
-                : _positionStreamSubscription!.isPaused
-                    ? 'Resume'
-                    : 'Pause',
-            backgroundColor: _determineButtonColor(),
-          ),
+          SizedBox(
+              width: 100,
+              height: 100,
+              child: FloatingActionButton(
+                child: (_positionStreamSubscription == null ||
+                        _positionStreamSubscription!.isPaused)
+                    ? const Icon(
+                        Icons.play_arrow,
+                        size: 80,
+                      )
+                    : const Icon(
+                        Icons.pause,
+                        size: 80,
+                      ),
+                onPressed: () {
+                  positionStreamStarted = !positionStreamStarted;
+                  positionStreamStarted
+                      ? tts.speak('Snelheidsmeting is gestart')
+                      : tts.speak('Snelheidsmeting is gestopt');
+                  _toggleListening();
+                },
+                tooltip: (_positionStreamSubscription == null)
+                    ? 'Start position updates'
+                    : _positionStreamSubscription!.isPaused
+                        ? 'Resume'
+                        : 'Pause',
+                backgroundColor: _determineButtonColor(),
+              )),
         ],
       ),
     );
