@@ -84,8 +84,10 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     _toggleServiceStatusStream();
-    tts.speak(
-        'De startknop staat rechts onderaan. Midden bovenaan onder de status balk staan onder elkaar verschillende informatie die uitgesproken wordt als je er op tabt.');
+    tts.speak('''De startknop staat rechts onderaan. 
+        Midden bovenaan onder de status balk staan 
+        onder elkaar verschillende informatie die 
+        uitgesproken wordt als je er op tabt.''');
   }
 
   PopupMenuButton _createSettingsPopupActions() {
@@ -225,11 +227,15 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             onPressed: () {
               tts.speak(
-                'Om de $speakCounter locatie ophalingen\n wordt je snelheid uitgesproken./n   Hieronder kun je dit instellen door de schuiven naar links of naar rechts',
+                '''Om de $speakCounter locatie ophalingen\n wordt 
+                je snelheid uitgesproken./n   
+                Hieronder kun je dit instellen door de schuiven n
+                aar links of naar rechts''',
               );
             },
             child: Text(
-              '   Om de $speakCounter locatie ophalingen\n wordt je snelheid uitgesproken.',
+              '''   Om de $speakCounter locatie ophalingen\n 
+              wordt je snelheid uitgesproken.''',
               style: const TextStyle(fontSize: 20),
             ),
           ),
@@ -265,8 +271,9 @@ class _MyHomePageState extends State<MyHomePage> {
               minimumSize: const Size.fromHeight(50), // NEW
             ),
             onPressed: () {
-              tts.speak(
-                  'Meer informatie heb ik momenteel nog niet. Om je training te starten klik je op de startknop rechts onderaan.');
+              tts.speak('''Meer informatie heb ik momenteel nog niet. 
+                  Om je training te starten klik je op de 
+                  startknop rechts onderaan.''');
             },
             child: const Text(
               '',
@@ -569,8 +576,8 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<void> _activeOnBackground() async {
     const config = FlutterBackgroundAndroidConfig(
       notificationTitle: 'Activate on background',
-      notificationText:
-          'Background notification for keeping the RunZone app running in the background',
+      notificationText: '''Background notification for keeping 
+          the RunZone app running in the background''',
       notificationIcon: AndroidResource(name: 'background_icon'),
       notificationImportance: AndroidNotificationImportance.Default,
       enableWifiLock: true,

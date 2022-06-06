@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:numberpicker/numberpicker.dart';
 
-class _IntegerPicker extends StatefulWidget {
+class IntegerPicker extends StatefulWidget {
+  final int value;
+  const IntegerPicker({Key? key, this.value = 60}) : super(key: key);
+
   @override
   __IntegerPickerState createState() => __IntegerPickerState();
 }
 
-class __IntegerPickerState extends State<_IntegerPicker> {
+class __IntegerPickerState extends State<IntegerPicker> {
   int _currentIntValue = 10;
   int _currentHorizontalIntValue = 10;
 
