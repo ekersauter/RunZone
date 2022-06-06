@@ -50,9 +50,11 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   TextToSpeech tts = TextToSpeech();
-  int speakCounter = 60;
+  int speakCounter = 10;
   double stateMinPerKm = 0.0;
   String stateSpeakMinPerKm = 'Geen beweging gevonden';
+  int stateTimesGetGeo = 0;
+  double stateDistanceInKm = 0.0;
 
   static const String _kLocationServicesDisabledMessage =
       'Location services are disabled.';
@@ -96,8 +98,16 @@ class _MyHomePageState extends State<MyHomePage> {
           case 4:
             _openLocationSettings();
             break;
-          case 5:
+          case 6:
             setState(_positionItems.clear);
+            setState(() {
+              stateMinPerKm = 0.0;
+              stateTimesGetGeo = 0;
+              stateDistanceInKm = 0.0;
+            });
+            break;
+          case 5:
+            _activeOnBackground();
             break;
           default:
             break;
@@ -124,8 +134,12 @@ class _MyHomePageState extends State<MyHomePage> {
             value: 4,
           ),
         const PopupMenuItem(
-          child: Text("Clear"),
+          child: Text("Run in background Settings"),
           value: 5,
+        ),
+        const PopupMenuItem(
+          child: Text("Clear"),
+          value: 6,
         ),
       ],
     );
@@ -142,51 +156,78 @@ class _MyHomePageState extends State<MyHomePage> {
         title: const Text('Runzone'),
         actions: [_createSettingsPopupActions()],
       ),
-      backgroundColor: Colors.grey,
-      body: ListView.builder(
-        itemCount: _positionItems.length,
-        itemBuilder: (context, index) {
-          final positionItem = _positionItems[index];
-          if (positionItem.type == _PositionItemType.log) {
-            _positionItems.length % speakCounter == 0
-                ? tts.speak(stateSpeakMinPerKm)
-                : '';
-            return Text(
-              index.toString() + ' ' + stateMinPerKm.toString(),
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            );
-          } else {
-            return Text(
-              index.toString() + ' ' + stateMinPerKm.toString(),
-              style: const TextStyle(color: Colors.white),
-            );
-          }
-        },
+      backgroundColor: Colors.black,
+      body: Column(
+        children: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              primary: Colors.black,
+              minimumSize: const Size.fromHeight(50), // NEW
+            ),
+            onPressed: () {
+              tts.speak(
+                  stateTimesGetGeo.toString() + ' maal locatie data opgehaald');
+            },
+            child: Text(
+              stateTimesGetGeo.toString(),
+              style: const TextStyle(fontSize: 38),
+            ),
+          ),
+          sizedBox,
+          sizedBox,
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              primary: Colors.black,
+              minimumSize: const Size.fromHeight(50), // NEW
+            ),
+            onPressed: () {
+              tts.speak(stateSpeakMinPerKm);
+            },
+            child: Text(
+              stateSpeakMinPerKm,
+              style: const TextStyle(fontSize: 20),
+            ),
+          ),
+          sizedBox,
+          sizedBox,
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              primary: Colors.black,
+              minimumSize: const Size.fromHeight(50), // NEW
+            ),
+            onPressed: () {
+              tts.speak(stateDistanceInKm
+                      .toStringAsFixed(2)
+                      .replaceAll('.', ' comma ') +
+                  ' k');
+            },
+            child: Text(
+              stateDistanceInKm.toStringAsFixed(3).replaceAll('.', ',') + ' km',
+              style: const TextStyle(fontSize: 20),
+            ),
+          ),
+        ],
       ),
       floatingActionButton: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          sizedBox,
-          FloatingActionButton(
-            child: const Icon(Icons.back_hand_outlined),
-            onPressed: _activeOnBackground,
-          ),
-          sizedBox,
-          FloatingActionButton(
-            child: const Icon(Icons.my_location),
-            onPressed: _getCurrentPosition,
-          ),
-          sizedBox,
-          FloatingActionButton(
-            child: const Icon(Icons.bookmark),
-            onPressed: _getLastKnownPosition,
-          ),
-          sizedBox,
+          // sizedBox,
+          // FloatingActionButton(
+          //   child: const Icon(Icons.back_hand_outlined),
+          //   onPressed: _activeOnBackground,
+          // ),
+          // sizedBox,
+          // FloatingActionButton(
+          //   child: const Icon(Icons.my_location),
+          //   onPressed: _getCurrentPosition,
+          // ),
+          // sizedBox,
+          // FloatingActionButton(
+          //   child: const Icon(Icons.bookmark),
+          //   onPressed: _getLastKnownPosition,
+          // ),
+          // sizedBox,
           FloatingActionButton(
             child: (_positionStreamSubscription == null ||
                     _positionStreamSubscription!.isPaused)
@@ -220,8 +261,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
     final position = await _geolocatorPlatform.getCurrentPosition();
 
-    _updatePositionList(
-        _PositionItemType.position, position.toString(), position.speed);
+    _updatePositionList(_PositionItemType.position, position.toString(),
+        position.speed, [position.latitude, position.longitude]);
   }
 
   Future<bool> _handlePermission() async {
@@ -234,8 +275,8 @@ class _MyHomePageState extends State<MyHomePage> {
       // Location services are not enabled don't continue
       // accessing the position and request users of the
       // App to enable the location services.
-      _updatePositionList(
-          _PositionItemType.log, _kLocationServicesDisabledMessage, 0.0);
+      _updatePositionList(_PositionItemType.log,
+          _kLocationServicesDisabledMessage, 0.0, [0.0, 0.0]);
 
       return false;
     }
@@ -250,7 +291,7 @@ class _MyHomePageState extends State<MyHomePage> {
         // returned true. According to Android guidelines
         // your App should show an explanatory UI now.
         _updatePositionList(
-            _PositionItemType.log, _kPermissionDeniedMessage, 0.0);
+            _PositionItemType.log, _kPermissionDeniedMessage, 0.0, [0.0, 0.0]);
 
         return false;
       }
@@ -258,28 +299,46 @@ class _MyHomePageState extends State<MyHomePage> {
 
     if (permission == LocationPermission.deniedForever) {
       // Permissions are denied forever, handle appropriately.
-      _updatePositionList(
-          _PositionItemType.log, _kPermissionDeniedForeverMessage, 0.0);
+      _updatePositionList(_PositionItemType.log,
+          _kPermissionDeniedForeverMessage, 0.0, [0.0, 0.0]);
 
       return false;
     }
 
     // When we reach here, permissions are granted and we can
     // continue accessing the position of the device.
-    _updatePositionList(_PositionItemType.log, _kPermissionGrantedMessage, 0.0);
+    _updatePositionList(
+        _PositionItemType.log, _kPermissionGrantedMessage, 0.0, [0.0, 0.0]);
     return true;
   }
 
-  void _updatePositionList(
-      _PositionItemType type, String displayValue, double displaySpeed) {
-    _positionItems.add(_PositionItem(type, displayValue, displaySpeed));
+  void _updatePositionList(_PositionItemType type, String displayValue,
+      double displaySpeed, List<double> displayLatLon) {
+    _positionItems
+        .add(_PositionItem(type, displayValue, displaySpeed, displayLatLon));
     double currentMinPerKmSpeed =
         displaySpeed > 0.4 ? ((1 / displaySpeed) / 0.06) : 0.0;
+    double subDistance = 0.0;
+    if (stateTimesGetGeo > 2) {
+      subDistance = Geolocator.distanceBetween(
+        _positionItems[stateTimesGetGeo].displayLatLon[0],
+        _positionItems[stateTimesGetGeo].displayLatLon[1],
+        _positionItems[stateTimesGetGeo - 1].displayLatLon[0],
+        _positionItems[stateTimesGetGeo - 1].displayLatLon[1],
+      );
+    }
+
     setState(() {
       stateMinPerKm = currentMinPerKmSpeed;
       stateSpeakMinPerKm =
           currentMinPerKmSpeed.toStringAsFixed(2).replaceAll('.', ' minuten ');
+      stateTimesGetGeo = _positionItems.length;
+      stateDistanceInKm += subDistance / 1000 < 1 ? subDistance / 1000 : 0.0;
     });
+
+    if (stateTimesGetGeo % speakCounter == 0) {
+      tts.speak(stateSpeakMinPerKm);
+    }
   }
 
   bool _isListening() => !(_positionStreamSubscription == null ||
@@ -309,13 +368,13 @@ class _MyHomePageState extends State<MyHomePage> {
               _positionStreamSubscription?.cancel();
               _positionStreamSubscription = null;
               _updatePositionList(_PositionItemType.log,
-                  'Position Stream has been canceled', 0.0);
+                  'Position Stream has been canceled', 0.0, [0.0, 0.0]);
             });
           }
           serviceStatusValue = 'disabled';
         }
         _updatePositionList(_PositionItemType.log,
-            'Location service has been $serviceStatusValue', 0.0);
+            'Location service has been $serviceStatusValue', 0.0, [0.0, 0.0]);
       });
     }
   }
@@ -327,7 +386,10 @@ class _MyHomePageState extends State<MyHomePage> {
         _positionStreamSubscription?.cancel();
         _positionStreamSubscription = null;
       }).listen((position) => _updatePositionList(
-          _PositionItemType.position, position.toString(), position.speed));
+          _PositionItemType.position,
+          position.toString(),
+          position.speed,
+          [position.latitude, position.longitude]));
       _positionStreamSubscription?.pause();
     }
 
@@ -345,8 +407,11 @@ class _MyHomePageState extends State<MyHomePage> {
         statusDisplayValue = 'paused';
       }
 
-      _updatePositionList(_PositionItemType.log,
-          'Listening for position updates $statusDisplayValue', 0.0);
+      _updatePositionList(
+          _PositionItemType.log,
+          'Listening for position updates $statusDisplayValue',
+          0.0,
+          [0.0, 0.0]);
     });
   }
 
@@ -363,11 +428,11 @@ class _MyHomePageState extends State<MyHomePage> {
   void _getLastKnownPosition() async {
     final position = await _geolocatorPlatform.getLastKnownPosition();
     if (position != null) {
-      _updatePositionList(
-          _PositionItemType.position, position.toString(), position.speed);
+      _updatePositionList(_PositionItemType.position, position.toString(),
+          position.speed, [position.latitude, position.longitude]);
     } else {
-      _updatePositionList(
-          _PositionItemType.log, 'No last known position available', 0.0);
+      _updatePositionList(_PositionItemType.log,
+          'No last known position available', 0.0, [0.0, 0.0]);
     }
   }
 
@@ -392,8 +457,11 @@ class _MyHomePageState extends State<MyHomePage> {
     } else {
       locationAccuracyStatusValue = 'Unknown';
     }
-    _updatePositionList(_PositionItemType.log,
-        '$locationAccuracyStatusValue location accuracy granted.', 0.0);
+    _updatePositionList(
+        _PositionItemType.log,
+        '$locationAccuracyStatusValue location accuracy granted.',
+        0.0,
+        [0.0, 0.0]);
   }
 
   void _openAppSettings() async {
@@ -406,7 +474,7 @@ class _MyHomePageState extends State<MyHomePage> {
       displayValue = 'Error opening Application Settings.';
     }
 
-    _updatePositionList(_PositionItemType.log, displayValue, 0.0);
+    _updatePositionList(_PositionItemType.log, displayValue, 0.0, [0.0, 0.0]);
   }
 
   void _openLocationSettings() async {
@@ -419,7 +487,7 @@ class _MyHomePageState extends State<MyHomePage> {
       displayValue = 'Error opening Location Settings';
     }
 
-    _updatePositionList(_PositionItemType.log, displayValue, 0.0);
+    _updatePositionList(_PositionItemType.log, displayValue, 0.0, [0.0, 0.0]);
   }
 
   Future<void> _activeOnBackground() async {
@@ -450,9 +518,11 @@ enum _PositionItemType {
 }
 
 class _PositionItem {
-  _PositionItem(this.type, this.displayValue, this.displaySpeed);
+  _PositionItem(
+      this.type, this.displayValue, this.displaySpeed, this.displayLatLon);
 
   final _PositionItemType type;
   final String displayValue;
   final double displaySpeed;
+  final List<double> displayLatLon;
 }
