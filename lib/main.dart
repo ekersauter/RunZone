@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'dart:io' show Platform;
 import 'package:flutter/services.dart';
-
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:text_to_speech/text_to_speech.dart';
 import 'package:wakelock/wakelock.dart';
 import 'package:flutter_background/flutter_background.dart';
-import 'package:numberpicker/numberpicker.dart';
+
+import './tools/numberpicker.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -57,6 +57,19 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   TextToSpeech tts = TextToSpeech();
   int speakCounter = 60;
+  callback(stateSpeakCounter) {
+    setState(() {
+      speakCounter = stateSpeakCounter;
+      stateSpeakCounter > 30
+          ? tts.speak('   Je snelheid hoor je om de ongeveer ' +
+              ((stateSpeakCounter * 2) / 60).toStringAsFixed(2) +
+              ' minuten.')
+          : tts.speak('   Je snelheid hoor je om de ongeveer ' +
+              (stateSpeakCounter * 2).toString() +
+              ' seconden.');
+    });
+  }
+
   double stateMinPerKm = 0.0;
   String stateSpeakMinPerKm = 'Geen beweging gevonden';
   int stateTimesGetGeo = 0;
@@ -241,27 +254,9 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           sizedBox,
           sizedBox,
-          NumberPicker(
+          IntegerPicker(
             value: speakCounter,
-            minValue: 10,
-            maxValue: 600,
-            step: 10,
-            itemHeight: 100,
-            axis: Axis.horizontal,
-            onChanged: (value) {
-              setState(() => speakCounter = value);
-              value > 30
-                  ? tts.speak('   Je snelheid hoor je om de ongeveer ' +
-                      ((value * 2) / 60).toStringAsFixed(2) +
-                      ' minuten.')
-                  : tts.speak('   Je snelheid hoor je om de ongeveer ' +
-                      (value * 2).toString() +
-                      ' seconden.');
-            },
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white),
-            ),
+            callbackFunction: callback,
           ),
           sizedBox,
           sizedBox,
